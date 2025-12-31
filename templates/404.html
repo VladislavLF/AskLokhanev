@@ -1,0 +1,7 @@
+{% extends "layouts/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block heading %}Page not found{% endblock %}
+{% block content %}
+<p>Sorry, the page you requested does not exist.</p>
+<a href="{% url 'index' %}">Return to main page</a>
+{% endblock %}

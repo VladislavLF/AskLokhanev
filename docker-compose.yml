@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      - DEBUG=${DEBUG}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
+      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - MYSQL_DB_NAME=${MYSQL_DB_NAME}
+      - MYSQL_DB_USER=${MYSQL_DB_USER}
+      - MYSQL_DB_PASSWORD=${MYSQL_DB_PASSWORD}
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_PORT=${MYSQL_PORT}
+      - MEMCACHED_LOCATION=${MEMCACHED_LOCATION}
+      - FILL_DB_RATIO=${FILL_DB_RATIO}
+      - RESET_DB_ON_START=${RESET_DB_ON_START}
+      - DB_MAX_ATTEMPTS=${DB_MAX_ATTEMPTS}
+      - MEMCACHED_HOST=${MEMCACHED_HOST}
+      - MEMCACHED_PORT=${MEMCACHED_PORT}
+      - MEMCACHED_MAX_ATTEMPTS=${MEMCACHED_MAX_ATTEMPTS}
+      - CENTRIFUGO_SECRET_KEY=${CENTRIFUGO_SECRET_KEY}
+      - CENTRIFUGO_ADMIN_PASSWORD=${CENTRIFUGO_ADMIN_PASSWORD}
+      - CENTRIFUGO_ADMIN_SECRET=${CENTRIFUGO_ADMIN_SECRET}
+      - CENTRIFUGO_API_KEY=${CENTRIFUGO_API_KEY}
+      - CENTRIFUGO_ALLOWED_ORIGINS=${CENTRIFUGO_ALLOWED_ORIGINS}
+      - CENTRIFUGO_WEB=${CENTRIFUGO_WEB}
+      - CENTRIFUGO_ADMIN=${CENTRIFUGO_ADMIN}
+      - CENTRIFUGO_DEBUG=${CENTRIFUGO_DEBUG}
+      - CENTRIFUGO_HOST=${CENTRIFUGO_HOST}
+      - CENTRIFUGO_PORT=${CENTRIFUGO_PORT}
+      - CENTRIFUGO_MAX_ATTEMPTS=${CENTRIFUGO_MAX_ATTEMPTS}
+      - STATIC_ROOT=${STATIC_ROOT}
+      - MEDIA_ROOT=${MEDIA_ROOT}
+      - LOG_PATH=${LOG_PATH}
+      - NGINX_CACHE_PATH=${NGINX_CACHE_PATH}
+      - NGINX_PORT=${NGINX_PORT}
+      - NGINX_SERVER_NAME=${NGINX_SERVER_NAME}
+      - GUNICORN_HOST=${GUNICORN_HOST}
+      - GUNICORN_PORT=${GUNICORN_PORT}
+      - TAGS_CACHE_TTL=${TAGS_CACHE_TTL}
+      - USERS_CACHE_TTL=${USERS_CACHE_TTL}
+      - TIME_ZONE=${TIME_ZONE}
+      - NGINX_WORKER_CONNECTIONS=${NGINX_WORKER_CONNECTIONS}
+      - NGINX_ACCESS_LOG_PATH=${NGINX_ACCESS_LOG_PATH}
+      - NGINX_ERROR_LOG_PATH=${NGINX_ERROR_LOG_PATH}
+      - NGINX_GZIP_COMP_LEVEL=${NGINX_GZIP_COMP_LEVEL}
+      - NGINX_GZIP_BUFFERS=${NGINX_GZIP_BUFFERS}
+      - NGINX_CACHE_ZONE_SIZE=${NGINX_CACHE_ZONE_SIZE}
+      - NGINX_CACHE_MAX_SIZE=${NGINX_CACHE_MAX_SIZE}
+      - NGINX_CACHE_INACTIVE=${NGINX_CACHE_INACTIVE}
+      - NGINX_CACHE_VALID_TIME=${NGINX_CACHE_VALID_TIME}
+    depends_on:
+      - db
+      - memcached
+    volumes:
+      - ./centrifugo_data:/centrifugo
+      - ./media:/app/media
+      - ./static:/app/static
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DB_NAME:-ask_db}
+      - MYSQL_USER=${MYSQL_DB_USER:-user}
+      - MYSQL_PASSWORD=${MYSQL_DB_PASSWORD:-password}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --bind-address=0.0.0.0
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d  # Важно: эта папка
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  memcached:
+    image: memcached:latest
+    restart: unless-stopped
+
+  centrifugo:
+    image: centrifugo/centrifugo:v4.1.0
+    volumes:
+      - ./centrifugo_data:/centrifugo
+    ports:
+      - "8001:8000"
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
